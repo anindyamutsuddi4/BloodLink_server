@@ -18,21 +18,59 @@ const client = new MongoClient(uri, {
   }
 });
 
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
-
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     const db = client.db('BloodLink')
     const usercollection = db.collection('users')
+    const requestcollection = db.collection('requests')
     app.post('/users', async (req, res) => {
       const donor = req.body
       donor.role = "donor"
       donor.createdAt = new Date()
       const result = await usercollection.insertOne(donor)
+      res.send(result)
+    })
+
+    app.get('/users/:email/role', async (req, res) => {
+      const email = req.params.email
+      const query = { email }
+      const user = await usercollection.findOne(query)
+      res.send({ role: user?.role || "user" })
+      //user thakle role pathai diba noile 'user' pathaba
+    })
+    app.get('/users/:email', async (req, res) => {
+      const email = req.params.email;
+      const query = { email }
+      const result = await usercollection.findOne(query)
+      res.send(result)
+    })
+    app.patch('/users/:email', async (req, res) => {
+      const email = req.params.email
+      const query = { email }
+      const fields = ["name", "divisions", "district", "bloodgroup"];
+      const updateData = {};
+      fields.forEach(f => {
+        if (req.body[f] !== undefined && req.body[f] !== "") {
+          updateData[f] = req.body[f];
+        }
+      });
+      const result = await usercollection.updateOne(query, { $set: updateData })
+      res.send(result)
+    })
+    app.post('/requests', async (req, res) => {
+      const donor = req.body
+      donor.status = "pending"
+      donor.createdAt = new Date()
+      const result = await requestcollection.insertOne(donor)
+      res.send(result)
+    })
+
+    app.get('/requests/:email', async (req, res) => {
+      const email = req.params.email;
+      const query = { email }
+      const result = await requestcollection.findOne(query)
       res.send(result)
     })
 
@@ -45,6 +83,11 @@ async function run() {
   }
 }
 run().catch(console.dir);
+
+app.get('/', (req, res) => {
+  res.send('Hello World!')
+})
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
 })
