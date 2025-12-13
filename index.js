@@ -3,7 +3,7 @@ const cors = require('cors')
 const app = express()
 require('dotenv').config()
 const port = process.env.PORT || 3000
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 //middleware
 app.use(express.json())
 app.use(cors())
@@ -64,6 +64,31 @@ async function run() {
       donor.status = "pending"
       donor.createdAt = new Date()
       const result = await requestcollection.insertOne(donor)
+      res.send(result)
+    })
+    app.get('/requests/details/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await requestcollection.findOne(query)
+      res.send(result)
+    })
+    app.patch('/requests/:id', async (req, res) => {
+      const id = req.params.id
+      const query = { _id: new ObjectId(id) }
+      const fields = ["recipientname", "recipientdivision", "recipientdistrict", "hospital", "fulladdress", "bloodgroup", "donationDate", "donationTime", "requestMessage", "status"];
+      const updateData = {};
+      fields.forEach(f => {
+        if (req.body[f] !== undefined && req.body[f] !== "") {
+          updateData[f] = req.body[f];
+        }
+      });
+      const result = await requestcollection.updateOne(query, { $set: updateData })
+      res.send(result)
+    })
+    app.delete('/requests/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await requestcollection.deleteOne(query)
       res.send(result)
     })
 
